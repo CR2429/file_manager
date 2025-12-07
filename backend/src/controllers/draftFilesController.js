@@ -62,9 +62,27 @@ exports.deleteDraftFile = async (req, res) => {
     try {
         const { id } = req.params;
 
-        await pool.query(`DELETE FROM draft_files WHERE id = ?`, [id]);
+        // Supprimer d'abord tous les liens liés aux keywords de ce fichier
+        await pool.query(
+            `
+            DELETE dl
+            FROM draft_links dl
+            JOIN draft_keywords dk
+                ON dl.from_id = dk.id
+                OR dl.to_id = dk.id
+            WHERE dk.file_id = ?
+            `,
+            [id]
+        );
+
+        // Puis supprimer le fichier (les keywords seront supprimés par ON DELETE CASCADE si configuré)
+        await pool.query(
+            `DELETE FROM draft_files WHERE id = ?`,
+            [id]
+        );
 
         res.json({ success: true });
+
     } catch (err) {
         console.error("Error deleting draft file:", err);
         res.status(500).json({ error: "Database error" });
