@@ -5,11 +5,18 @@ const { v4: uuidv4 } = require("uuid");
 exports.createDraftFile = async (req, res) => {
     try {
         const id = uuidv4();
-        const { title = "Nouveau fichier", content = "" } = req.body;
+        const {
+            title = "Nouveau fichier",
+            content = "",
+            x = 0,
+            y = 0,
+            z = 0
+        } = req.body;
 
         await pool.query(
-            `INSERT INTO draft_files (id, title, content) VALUES (?, ?, ?)`,
-            [id, title, content]
+            `INSERT INTO draft_files (id, title, content, pos_x, pos_y, pos_z)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [id, title, content, x, y, z]
         );
 
         res.json({ success: true, id });
@@ -18,6 +25,7 @@ exports.createDraftFile = async (req, res) => {
         res.status(500).json({ error: "Database error" });
     }
 };
+
 
 // READ
 exports.getDraftFiles = async (req, res) => {

@@ -1,0 +1,54 @@
+/* ================================
+   EDITOR TOOLBAR 
+================================ */
+.rte-toolbar {
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    background: #333;
+    border-bottom: 1px solid #555;
+}
+
+.rte-toolbar button {
+    background: #444;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    color: white;
+    font-weight: bold;
+}
+.rte-toolbar button:hover {
+    background: #555;
+}
+
+.rte-toolbar .rte-btn-active {
+    background: #1e90ff !important;
+    color: white;
+}
+
+/* ================================
+   EDITOR ZONE
+================================ */
+.rte-root {
+    margin-top: 8px;
+    min-height: 180px;
+    border-radius: 8px;
+    border: 1px solid #555;
+    background: #1a1a1a;
+    color: white;
+    outline: none;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    font-size: 15px;
+}
+
+.rte-editor {
+    min-height: 180px;
+    padding: 12px;
+    background: #1a1a1a;
+    color: white;
+    outline: none;
+    overflow-y: auto;
+    font-size: 15px;
+} 

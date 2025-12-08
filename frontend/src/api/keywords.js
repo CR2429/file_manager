@@ -1,7 +1,12 @@
 import axios from "axios";
 
+const API_BASE =
+    window.location.hostname === "localhost"
+        ? "http://localhost:3001" // backend dev
+        : ""; // en prod → même domaine
+
 const api = axios.create({
-    baseURL: "http://localhost:3001",
+    baseURL: API_BASE,
     headers: {
         "x-api-token": localStorage.getItem("apiToken") || ""
     }
