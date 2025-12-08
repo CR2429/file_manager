@@ -11,9 +11,12 @@
   },
   "dependencies": {
     "axios": "^1.13.2",
+    "d3": "^7.9.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-spring": "^10.0.3",
     "reactflow": "^11.11.4",
+    "reagraph": "^4.30.7",
     "slate": "^0.120.0",
     "slate-history": "^0.113.1",
     "slate-react": "^0.120.0"

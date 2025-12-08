@@ -1,59 +1,72 @@
-import { useRef, useState } from "react";
-import BlueprintNode from "../components/blueprint/BlueprintNode";
+import { useRef, useState, useEffect } from "react";
+import { getFiles } from "../api/files";
+
 import BlueprintToolbar from "../components/toolbar/BlueprintToolbar";
 import CreateFileModal from "../components/file/CreateFileModal";
 import ApiTokenModal from "../components/token/ApiTokenModal";
+import BlueprintCanvas from "../components/blueprint/BlueprintCanvas";
 
 import "./BlueprintPage.css";
 
 export default function BlueprintPage() {
     const [files, setFiles] = useState([]);
     const [fileModalOpen, setFileModalOpen] = useState(false);
-
-    const [offset, setOffset] = useState({ x: 0, y: 0 });
-    const [zoom, setZoom] = useState(1);
-
-    const isPanning = useRef(false);
-    const lastMouse = useRef({ x: 0, y: 0 });
-
     const [apiModalOpen, setApiModalOpen] = useState(false);
 
+    const [connections, setConnections] = useState([]);
+
+    // Camera state for Konva
+    const [camera, setCamera] = useState({
+        x: 0,
+        y: 0,
+        scale: 1
+    });
 
     function addFileToUI(file) {
-        setFiles(prev => [...prev, file]);
+        const index = files.length;
+
+        const node = {
+            id: file.id,
+            title: file.name || "Untitled",
+            x: 200 + index * 50,
+            y: 200 + index * 50,
+            inputs: [],
+            outputs: [{ id: "out1", color: "#4ea8de" }],
+            rawFile: file
+        };
+
+        setFiles(prev => [...prev, node]);
     }
 
-    function handleMouseDown(e) {
-        if (e.target.closest(".node")) return;
-        isPanning.current = true;
-        lastMouse.current = { x: e.clientX, y: e.clientY };
-    }
+    useEffect(() => {
+        async function load() {
+            try {
+                const data = await getFiles();
+                if (!data) return;
 
-    function handleMouseMove(e) {
-        if (!isPanning.current) return;
+                const nodes = data.map((file, index) => ({
+                    id: file.id,
+                    title: file.name || "Untitled",
+                    x: 200 + index * 50,
+                    y: 200 + index * 50,
+                    inputs: [],
+                    outputs: [{ id: "out1", color: "#4ea8de" }],
+                    rawFile: file
+                }));
 
-        const dx = e.clientX - lastMouse.current.x;
-        const dy = e.clientY - lastMouse.current.y;
+                setFiles(nodes);
+            } catch (err) {
+                console.error("Erreur chargement fichiers :", err);
+            }
+        }
+        load();
+    }, []);
 
-        setOffset(o => ({ x: o.x + dx, y: o.y + dy }));
-        lastMouse.current = { x: e.clientX, y: e.clientY };
-    }
-
-    function handleMouseUp() {
-        isPanning.current = false;
-    }
-
-    function handleWheel(e) {
-        e.preventDefault();
-        const factor = e.deltaY > 0 ? 0.9 : 1.1;
-        setZoom(z => Math.max(0.1, Math.min(5, z * factor)));
-    }
-    
     return (
         <>
             <BlueprintToolbar 
                 onCreateFile={() => setFileModalOpen(true)} 
-                onOpenApiTokenModal={() => setApiModalOpen(true)} 
+                onOpenApiTokenModal={() => setApiModalOpen(true)}
             />
 
             <CreateFileModal
@@ -63,7 +76,7 @@ export default function BlueprintPage() {
                     addFileToUI(nf);
                     setFileModalOpen(false);
                 }}
-                camera={{ offset, zoom }}
+                camera={camera}
             />
 
             <ApiTokenModal
@@ -71,28 +84,15 @@ export default function BlueprintPage() {
                 onClose={() => setApiModalOpen(false)}
             />
 
-
-            <div
-                className="canvas-root"
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onWheel={handleWheel}
-            >
-                <div
-                    className="canvas-world"
-                    style={{
-                        transform: `
-                            translate(${offset.x}px, ${offset.y}px)
-                            scale(${zoom})
-                            translate(-50%, -50%)
-                        `,
-                    }}
-                >
-                    {files.map((f) => (
-                        <BlueprintNode key={f.id} {...f} />
-                    ))}
-                </div>
+            <div className="blueprint-root">
+                <BlueprintCanvas
+                    files={files}
+                    setFiles={setFiles}
+                    connections={connections}
+                    setConnections={setConnections}
+                    camera={camera}
+                    setCamera={setCamera}
+                />
             </div>
         </>
     );
