@@ -37,18 +37,18 @@ export default function BlueprintToolbar({
 
             <div style={{ height: "1px", background: "#555", margin: "6px 0" }} />
 
-            {/* Modes */}
+            {/* Mode caméra verrouillée / libre */}
             <ToolbarButton
-                icon="🖱️"
-                label="Select"
-                active={mode === "select"}
-                onClick={onModeSelect}
-            />
-            <ToolbarButton
-                icon="🖐️"
-                label="Pan"
-                active={mode === "pan"}
-                onClick={onModePan}
+                icon={mode === "pan" ? "🔓" : "🔒"}
+                label={mode === "pan" ? "Camera libre" : "Camera verrouillée"}
+                active={mode != "pan"}             
+                onClick={() => {
+                    if (mode === "pan") {
+                        onModeSelect();  // bascule vers cámaras verrouillée
+                    } else {
+                        onModePan();     // bascule vers cámaras libre
+                    }
+                }}
             />
 
             <div style={{ height: "1px", background: "#555", margin: "6px 0" }} />
@@ -76,7 +76,7 @@ export default function BlueprintToolbar({
             <ToolbarButton
                 icon="▫"
                 label={gridEnabled ? "Grille ON" : "Grille OFF"}
-                active={gridEnabled}
+                active={!gridEnabled}
                 onClick={onToggleGrid}
             />
 

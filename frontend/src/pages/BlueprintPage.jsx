@@ -1,99 +1,136 @@
-import { useRef, useState, useEffect } from "react";
-import { getFiles } from "../api/files";
-
-import BlueprintToolbar from "../components/toolbar/BlueprintToolbar";
-import CreateFileModal from "../components/file/CreateFileModal";
-import ApiTokenModal from "../components/token/ApiTokenModal";
+// src/pages/BlueprintPage.jsx
+import { useState, useEffect, useCallback } from "react";
 import BlueprintCanvas from "../components/blueprint/BlueprintCanvas";
-
-import "./BlueprintPage.css";
+import BlueprintToolbar from "../components/toolbar/BlueprintToolbar";
+import { getFiles, updateFilePosition } from "../api/files";
+import { GRID_STEP } from "../constants/grid";
 
 export default function BlueprintPage() {
-    const [files, setFiles] = useState([]);
-    const [fileModalOpen, setFileModalOpen] = useState(false);
-    const [apiModalOpen, setApiModalOpen] = useState(false);
 
-    const [connections, setConnections] = useState([]);
+    // Liste des nodes affichés dans l'éditeur Blueprint
+    const [nodes, setNodes] = useState([]);
 
-    // Camera state for Konva
+    // Liste des liens (sera utilisé plus tard)
+    const [links, setLinks] = useState([]);
+
+    // Caméra : position (x,y) + zoom (scale)
+    // Cette caméra représente la position du Stage Konva dans l'espace
     const [camera, setCamera] = useState({
         x: 0,
         y: 0,
         scale: 1
     });
 
-    function addFileToUI(file) {
-        const index = files.length;
+    // Mode d'interaction de l'utilisateur : select ou pan
+    const [mode, setMode] = useState("pan");
 
-        const node = {
-            id: file.id,
-            title: file.name || "Untitled",
-            x: 200 + index * 50,
-            y: 200 + index * 50,
-            inputs: [],
-            outputs: [{ id: "out1", color: "#4ea8de" }],
-            rawFile: file
-        };
+    // Activation ou non de la grille d'arrière-plan
+    const [gridEnabled, setGridEnabled] = useState(true);
 
-        setFiles(prev => [...prev, node]);
-    }
-
+    // Charger les nodes depuis ton backend
     useEffect(() => {
         async function load() {
             try {
                 const data = await getFiles();
                 if (!data) return;
+                console.log("data : ", data);
 
-                const nodes = data.map((file, index) => ({
+                // On convertit les fichiers reçus en nodes affichables
+                const loadedNodes = data.map(file => ({
                     id: file.id,
-                    title: file.name || "Untitled",
-                    x: 200 + index * 50,
-                    y: 200 + index * 50,
+                    title: file.title,
+                    type: "file",
+                    headerColor: "#347bed",
+                    content: file.content,
+
+                    // conversion CASE → PIXEL
+                    x: (file.pos_x ?? 0) * GRID_STEP,
+                    y: (file.pos_y ?? 0) * GRID_STEP,
+
                     inputs: [],
-                    outputs: [{ id: "out1", color: "#4ea8de" }],
-                    rawFile: file
+                    outputs: []
                 }));
 
-                setFiles(nodes);
-            } catch (err) {
-                console.error("Erreur chargement fichiers :", err);
+                console.log("loadedNodes : ", loadedNodes);
+                setNodes(loadedNodes);
+            } catch (e) {
+                console.error("Erreur lors du chargement des nodes :", e);
             }
         }
+
         load();
     }, []);
 
+    // Lorsque l'utilisateur déplace un node, cette fonction est appelée
+    const updateNodePosition = useCallback((id, x, y) => {
+        setNodes(prev =>
+            prev.map(n => n.id === id ? { ...n, x, y } : n)
+        );
+    }, []);
+
+    const commitNodePosition = useCallback(async (id, gridX, gridY) => {
+        try {
+            await updateFilePosition(id, gridX, gridY);
+        } catch (e) {
+            console.error("Erreur sauvegarde position :", e);
+        }
+    }, []);
+
+    // Mettre à jour la caméra et sauvegarder sa position dans localStorage
+    const updateCamera = useCallback((patch) => {
+        setCamera(prev => {
+            const updated = { ...prev, ...patch };
+            localStorage.setItem("blueprintCamera", JSON.stringify(updated));
+            return updated;
+        });
+    }, []);
+
+    // Au lancement : restaurer la caméra sauvegardée
+    useEffect(() => {
+        const saved = localStorage.getItem("blueprintCamera");
+        if (saved) {
+            setCamera(JSON.parse(saved));
+        }
+    }, []);
+
+    // Fonctions de la toolbar (zoom, reset, grille)
+    const zoomStep = 1.1;
+
+    const handleZoomIn = () => updateCamera({ scale: camera.scale * zoomStep });
+    const handleZoomOut = () => updateCamera({ scale: camera.scale / zoomStep });
+    const handleResetView = () => updateCamera({ x: 0, y: 0, scale: 1 });
+    const handleToggleGrid = () => setGridEnabled(g => !g);
+
+    
+
     return (
-        <>
-            <BlueprintToolbar 
-                onCreateFile={() => setFileModalOpen(true)} 
-                onOpenApiTokenModal={() => setApiModalOpen(true)}
+        <div style={{ width: "100vw", height: "100vh", overflow: "hidden" }}>
+
+            {/* Toolbar flottante (boutons de création, zoom, grille, etc.) */}
+            <BlueprintToolbar
+                mode={mode}
+                gridEnabled={gridEnabled}
+                onModeSelect={() => setMode("select")}
+                onModePan={() => setMode("pan")}
+                onZoomIn={handleZoomIn}
+                onZoomOut={handleZoomOut}
+                onResetView={handleResetView}
+                onToggleGrid={handleToggleGrid}
+                onCreateFile={() => {}}
+                onOpenApiTokenModal={() => {}}
             />
 
-            <CreateFileModal
-                open={fileModalOpen}
-                onClose={() => setFileModalOpen(false)}
-                onFinished={(nf) => {
-                    addFileToUI(nf);
-                    setFileModalOpen(false);
-                }}
+            {/* Canvas Blueprint (Konva) */}
+            <BlueprintCanvas
+                nodes={nodes}
+                links={links}
                 camera={camera}
+                mode={mode}
+                gridEnabled={gridEnabled}
+                updateNodePosition={updateNodePosition}
+                commitNodePosition={commitNodePosition}
+                updateCamera={updateCamera}
             />
-
-            <ApiTokenModal
-                isOpen={apiModalOpen}
-                onClose={() => setApiModalOpen(false)}
-            />
-
-            <div className="blueprint-root">
-                <BlueprintCanvas
-                    files={files}
-                    setFiles={setFiles}
-                    connections={connections}
-                    setConnections={setConnections}
-                    camera={camera}
-                    setCamera={setCamera}
-                />
-            </div>
-        </>
+        </div>
     );
 }

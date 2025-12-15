@@ -52,11 +52,10 @@ export async function createFile(content) {
 // -------------------------------
 //  PATCH — Mettre à jour position
 // -------------------------------
-export async function updateFilePosition(id, pos) {
-    const res = await api.patch("/draft/position", {
-        type: "file",
-        id,
-        ...pos
+export async function updateFilePosition(id, pos_x, pos_y) {
+    const res = await api.patch(`/draft/files/${id}/position`, {
+        pos_x,
+        pos_y
     });
 
     return safeExtract(res);
@@ -66,7 +65,7 @@ export async function updateFilePosition(id, pos) {
 //  PATCH — Mettre à jour le contenu du fichier
 // -------------------------------
 export async function updateFileContent(id, content) {
-    const res = await api.patch(`/draft/files/${id}`, {
+    const res = await api.patch(`/draft/files/${id}/content`, {
         content
     });
 

@@ -1,79 +1,123 @@
+// src/components/blueprint/BlueprintNode.jsx
 import { Group, Rect, Text, Circle } from "react-konva";
-import { useState } from "react";
+import { GRID_STEP } from "../../constants/grid";
 
-export default function BlueprintNode({ node, files, setFiles }) {
-    const [pos, setPos] = useState({ x: node.x, y: node.y });
+export default function BlueprintNode({ node, onPositionChange, onPositionCommit }) {
+    // Dimensions visuelles du node
+    const width = 260;
+    const headerHeight = 32;
+    const bodyHeight = 120;
 
-    function handleDragMove(e) {
-        const x = e.target.x();
-        const y = e.target.y();
-        setPos({ x, y });
+    // Couleur du header (provisoire)
+    const headerColor = node.headerColor || "#347bed";
 
-        setFiles(prev =>
-            prev.map(n =>
-                n.id === node.id ? { ...n, x, y } : n
-            )
+    // Met à jour la position du node dans React lorsque l'utilisateur le déplace
+    const handleDragMove = (e) => {
+        // Position en pixels
+        const xPx = e.target.x();
+        const yPx = e.target.y();
+
+        // Conversion pixels → cases (snap)
+        const gridX = Math.round(xPx / GRID_STEP);
+        const gridY = Math.round(yPx / GRID_STEP);
+
+        // Mise à jour visuelle immédiate (snap)
+        onPositionChange(
+            node.id,
+            gridX * GRID_STEP,
+            gridY * GRID_STEP
         );
-    }
+    };
 
-    const width = 220;
-    const height = 110;
+    const handleDragEnd = (e) => {
+        const xPx = e.target.x();
+        const yPx = e.target.y();
+
+        const gridX = Math.round(xPx / GRID_STEP);
+        const gridY = Math.round(yPx / GRID_STEP);
+
+        // Commit final → sauvegarde DB
+        onPositionCommit(node.id, gridX, gridY);
+    };
+
+    // Position des "pins" (points de connexion)
+    const inputPinY = headerHeight + 24;
+    const outputPinY = headerHeight + 24;
 
     return (
         <Group
-            x={pos.x}
-            y={pos.y}
-            draggable
+            x={node.x}
+            y={node.y}
+            draggable={true}
             onDragMove={handleDragMove}
+            onDragEnd={handleDragEnd}
         >
-            {/* Node background */}
+            {/* Header du node */}
             <Rect
                 width={width}
-                height={height}
-                fill="#1b263b"
-                stroke="#778da9"
-                strokeWidth={2}
-                cornerRadius={6}
+                height={headerHeight}
+                fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+                fillLinearGradientEndPoint={{ x: width, y: 0 }}
+                fillLinearGradientColorStops={[
+                    0, headerColor,
+                    1, "#1f75fe"
+                ]}
+                cornerRadius={[6, 6, 0, 0]}
+                stroke="#6ea8ff"
+                strokeWidth={1.5}
             />
 
-            {/* Header */}
-            <Rect
-                width={width}
-                height={30}
-                fill="#415a77"
-                cornerRadius={[6,6,0,0]}
-            />
-
+            {/* Titre du node */}
             <Text
-                text={node.title}
+                text={node.title || "Node"}
                 x={10}
-                y={7}
+                y={6}
                 fill="white"
-                fontSize={16}
-                listening={false}
+                fontSize={15}
+                fontStyle="bold"
             />
 
-            {/* Inputs */}
-            {node.inputs?.map((p, i) => (
-                <Circle
-                    key={p.id}
-                    x={0}
-                    y={40 + i * 20}
-                    radius={6}
-                    fill={p.color || "#4ea8de"}
-                />
-            ))}
+            {/* Corps du node */}
+            <Rect
+                y={headerHeight}
+                width={width}
+                height={bodyHeight}
+                fill="#151923"
+                stroke="#6ea8ff"
+                strokeWidth={1.5}
+                cornerRadius={[0, 0, 6, 6]}
+            />
 
-            {/* Outputs */}
-            {node.outputs?.map((p, i) => (
-                <Circle
-                    key={p.id}
-                    x={width}
-                    y={40 + i * 20}
-                    radius={6}
-                    fill={p.color || "#4ea8de"}
-                />
-            ))}
+            {/* Texte descriptif */}
+            <Text
+                text={node.content || "No content"}
+                x={12}
+                y={headerHeight + 10}
+                width={width - 24}
+                fill="#c5d1e5"
+                fontSize={13}
+                lineHeight={1.3}
+            />
+
+            {/* Pin d'entrée (gauche) */}
+            <Circle
+                x={-10}
+                y={inputPinY}
+                radius={6}
+                fill="white"
+                stroke="#aaaaaa"
+                strokeWidth={1}
+            />
+
+            {/* Pin de sortie (droite) */}
+            <Circle
+                x={width + 10}
+                y={outputPinY}
+                radius={6}
+                fill="white"
+                stroke="#aaaaaa"
+                strokeWidth={1}
+            />
         </Group>
     );
 }

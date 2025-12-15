@@ -2,16 +2,22 @@ const express = require("express");
 const router = express.Router();
 const controller = require("../controllers/draftFilesController");
 
-// Create a new draft file
+// CREATE
 router.post("/create", controller.createDraftFile);
 
-// Get all draft files
+// READ
 router.get("/", controller.getDraftFiles);
 
-// Update a draft file
+// UPDATE — position uniquement
+router.patch("/:id/position", controller.updateDraftFilePosition);
+
+// UPDATE — contenu uniquement
+router.patch("/:id/content", controller.updateDraftFileContent);
+
+// UPDATE — patch général (optionnel / legacy)
 router.patch("/:id", controller.updateDraftFile);
 
-// Delete a draft file
+// DELETE
 router.delete("/:id", controller.deleteDraftFile);
 
 module.exports = router;

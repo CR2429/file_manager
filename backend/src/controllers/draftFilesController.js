@@ -5,18 +5,21 @@ const { v4: uuidv4 } = require("uuid");
 exports.createDraftFile = async (req, res) => {
     try {
         const id = uuidv4();
+
         const {
             title = "Nouveau fichier",
             content = "",
-            x = 0,
-            y = 0,
-            z = 0
+            pos_x = 0, // cases
+            pos_y = 0, // cases
+            pos_z = 0
         } = req.body;
 
         await pool.query(
-            `INSERT INTO draft_files (id, title, content, pos_x, pos_y, pos_z)
-             VALUES (?, ?, ?, ?, ?, ?)`,
-            [id, title, content, x, y, z]
+            `
+            INSERT INTO draft_files (id, title, content, pos_x, pos_y, pos_z)
+            VALUES (?, ?, ?, ?, ?, ?)
+            `,
+            [id, title, content, pos_x, pos_y, pos_z]
         );
 
         res.json({ success: true, id });
@@ -25,7 +28,6 @@ exports.createDraftFile = async (req, res) => {
         res.status(500).json({ error: "Database error" });
     }
 };
-
 
 // READ
 exports.getDraftFiles = async (req, res) => {
@@ -61,6 +63,68 @@ exports.updateDraftFile = async (req, res) => {
         res.json({ success: true });
     } catch (err) {
         console.error("Error updating draft file:", err);
+        res.status(500).json({ error: "Database error" });
+    }
+};
+
+// UPDATE POSITION
+exports.updateDraftFilePosition = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { pos_x, pos_y, pos_z } = req.body;
+
+        // Validation stricte : positions = CASES
+        if (!Number.isInteger(pos_x) || !Number.isInteger(pos_y)) {
+            return res.status(400).json({
+                error: "pos_x and pos_y must be integers (grid cases)"
+            });
+        }
+
+        await pool.query(
+            `
+            UPDATE draft_files
+            SET
+                pos_x = ?,
+                pos_y = ?,
+                pos_z = IFNULL(?, pos_z)
+            WHERE id = ?
+            `,
+            [pos_x, pos_y, pos_z ?? null, id]
+        );
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Error updating draft file position:", err);
+        res.status(500).json({ error: "Database error" });
+    }
+};
+
+// UPDATE CONTENT
+exports.updateDraftFileContent = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, content } = req.body;
+
+        if (typeof content !== "string" && typeof title !== "string") {
+            return res.status(400).json({
+                error: "Nothing to update"
+            });
+        }
+
+        await pool.query(
+            `
+            UPDATE draft_files
+            SET
+                title = IFNULL(?, title),
+                content = IFNULL(?, content)
+            WHERE id = ?
+            `,
+            [title ?? null, content ?? null, id]
+        );
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Error updating draft file content:", err);
         res.status(500).json({ error: "Database error" });
     }
 };
