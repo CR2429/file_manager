@@ -1,6 +1,6 @@
 // frontend/src/components/richtext/RichTextEditor.jsx
 import React, { useCallback, useMemo } from "react";
-import { createEditor, Text, Editor } from "slate";
+import { createEditor, Text, Editor, Range } from "slate";
 import { Slate, Editable, withReact, useSlate } from "slate-react";
 import { withHistory } from "slate-history";
 import "./RichTextEditor.css";
@@ -18,7 +18,7 @@ import "./RichTextEditor.css";
  */
 export default function RichTextEditor({
     initialText = "",
-    onChangeHtml,
+    onChange,
     placeholder = "Contenu…",
 }) {
     // Instance unique de l'editor
@@ -39,16 +39,18 @@ export default function RichTextEditor({
     // Nous, on récupère juste la value pour générer du HTML
     const handleChange = useCallback(
         (newValue) => {
-            if (!onChangeHtml) return;
+            if (!onChange) return;
 
-            const html = newValue
-                .map((node) => serializeNode(node))
-                .join("");
+            const html = newValue.map(serializeNode).join("").trim();
+            const keywords = extractKeywordsFromSlate(newValue);
 
-            onChangeHtml(html.trim());
+            onChange({ html, keywords });
         },
-        [onChangeHtml]
+        [onChange]
     );
+
+
+
 
     return (
         <div className="rte-root">
@@ -91,6 +93,7 @@ function Toolbar() {
             </MarkButton>
 
             {/* plus tard : bouton "Keyword" ici */}
+            <MarkButton format="keyword">🔗</MarkButton>
         </div>
     );
 }
@@ -127,7 +130,13 @@ function Leaf({ attributes, children, leaf }) {
     if (leaf.underline) {
         children = <u>{children}</u>;
     }
-
+    if (leaf.keyword) {
+        children = (
+            <span className="rte-keyword">
+                {children}
+            </span>
+        );
+    }
     return <span {...attributes}>{children}</span>;
 }
 
@@ -136,7 +145,11 @@ function Leaf({ attributes, children, leaf }) {
  * ======================= */
 
 function toggleMark(editor, format) {
+    const selection = editor.selection;
+    if (!selection || Range.isCollapsed(selection)) return;
+
     const isActive = isMarkActive(editor, format);
+
     if (isActive) {
         Editor.removeMark(editor, format);
     } else {
@@ -162,7 +175,9 @@ function serializeNode(node) {
         if (node.bold) text = `<b>${text}</b>`;
         if (node.italic) text = `<i>${text}</i>`;
         if (node.underline) text = `<u>${text}</u>`;
-
+        if (node.keyword) {
+        return `<span class="keyword">${text}</span>`;
+    }
         return text;
     }
 
@@ -214,6 +229,13 @@ function deserializeHtml(html) {
         if (node.tagName === "B") newMarks.bold = true;
         if (node.tagName === "I") newMarks.italic = true;
         if (node.tagName === "U") newMarks.underline = true;
+        if (node.tagName === "SPAN" && node.classList.contains("keyword")) {
+            const keywordId = node.dataset.keywordId;
+
+            return Array.from(node.childNodes).flatMap(child =>
+                walk(child, { keyword: true, keywordId })
+            );
+        }
 
         return Array.from(node.childNodes).flatMap(child =>
             walk(child, newMarks)
@@ -238,4 +260,30 @@ function deserializeHtml(html) {
             type: "paragraph",
             children: [{ text: "" }],
         }];
+}
+
+function extractKeywordsFromSlate(value) {
+    let index = 0;
+    const keywords = [];
+
+    function walk(node) {
+        if (Text.isText(node)) {
+            const length = node.text.length;
+
+            if (node.keyword) {
+                keywords.push({
+                    label: node.text,
+                    start_index: index,
+                    end_index: index + length
+                });
+            }
+
+            index += length;
+        } else if (node.children) {
+            node.children.forEach(walk);
+        }
+    }
+
+    value.forEach(walk);
+    return keywords;
 }

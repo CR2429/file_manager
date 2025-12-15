@@ -61,7 +61,7 @@ export default function CreateFileModal({ open, onClose, onFinished, stageRef })
                 <label className="modal-label">Contenu</label>
                 <RichTextEditor
                     initialText=""
-                    onChangeHtml={setContentHtml}
+                    onChange={setContentHtml}
                 />
 
                 <div className="modal-buttons">

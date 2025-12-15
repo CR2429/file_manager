@@ -1,11 +1,15 @@
 import { useState, useEffect} from "react";
 import { updateFileContent, deleteFile } from "../../api/files";
+import { getDraftKeywords, createDraftKeyword, updateDraftKeyword, deleteDraftKeyword } from "../../api/keywords";
 import RichTextEditor from "../richtext/RichTextEditor";
 import "./EditFileModal.css";
 
 export default function EditFileModal({ node, onClose, onSaved }) {
     const [title, setTitle] = useState("");
-    const [contentHtml, setContentHtml] = useState("");
+    const [editorData, setEditorData] = useState({
+        html: "",
+        keywords: []
+    });
     const [confirmDelete, setConfirmDelete] = useState(false);
 
     // Initialisation quand on ouvre le modal
@@ -35,13 +39,52 @@ export default function EditFileModal({ node, onClose, onSaved }) {
                 : `${title.trim()}.txt`
             : node.title;
 
+        // 1️⃣ Sauver le fichier
         await updateFileContent(node.id, {
             title: finalTitle,
-            content: contentHtml
+            content: editorData.html
         });
+
+        // 2️⃣ Synchroniser les keywords
+        await syncKeywords(node.id, editorData.keywords);
 
         onSaved();
     }
+
+
+    async function syncKeywords(fileId, incomingKeywords) {
+        const existing = await getDraftKeywords(fileId);
+
+        const keyOf = k => `${k.start_index}-${k.end_index}`;
+
+        const existingMap = new Map(
+            existing.map(k => [keyOf(k), k])
+        );
+
+        const incomingMap = new Map(
+            incomingKeywords.map(k => [keyOf(k), k])
+        );
+
+        // 🗑 SUPPRESSION : keywords supprimés du texte
+        for (const [key, kw] of existingMap) {
+            if (!incomingMap.has(key)) {
+                await deleteDraftKeyword(kw.id);
+            }
+        }
+
+        // ➕ CRÉATION : nouveaux keywords
+        for (const [key, kw] of incomingMap) {
+            if (!existingMap.has(key)) {
+                await createDraftKeyword({
+                    fileId,
+                    label: kw.label,
+                    start_index: kw.start_index,
+                    end_index: kw.end_index
+                });
+            }
+        }
+    }
+
 
     return (
         <div className="modal-overlay">
@@ -60,7 +103,7 @@ export default function EditFileModal({ node, onClose, onSaved }) {
                 <RichTextEditor
                     key={node.id}
                     initialText={node.content || ""}
-                    onChangeHtml={setContentHtml}
+                    onChange={setEditorData}
                 />
 
                 <div className="modal-buttons">

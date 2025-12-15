@@ -52,3 +52,9 @@
     overflow-y: auto;
     font-size: 15px;
 } 
+
+.rte-keyword {
+    text-decoration: underline;
+    color: #6ea8ff;
+    cursor: pointer;
+}
