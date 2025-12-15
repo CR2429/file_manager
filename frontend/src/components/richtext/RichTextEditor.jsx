@@ -24,20 +24,13 @@ export default function RichTextEditor({
     // Instance unique de l'editor
     const editor = useMemo(
         () => withHistory(withReact(createEditor())),
-        []
+        [initialText]
     );
+
 
     // Valeur de départ  → uniquement utilisée à la MONTÉE du composant
     const initialValue = useMemo(() => {
-        if (typeof initialText !== "string") {
-            initialText = "";
-        }
-        return [
-            {
-                type: "paragraph",
-                children: [{ text: initialText }],
-            },
-        ];
+        return deserializeHtml(initialText);
     }, [initialText]);
 
     const renderLeaf = useCallback((props) => <Leaf {...props} />, []);
@@ -49,7 +42,7 @@ export default function RichTextEditor({
             if (!onChangeHtml) return;
 
             const html = newValue
-                .map((node) => serializeNode(node) || "")
+                .map((node) => serializeNode(node))
                 .join("");
 
             onChangeHtml(html.trim());
@@ -185,7 +178,7 @@ function serializeNode(node) {
     switch (node.type) {
         case "paragraph":
         default:
-            return children;
+            return `<p>${children}</p>`;
     }
 }
 
@@ -194,4 +187,55 @@ function escapeHtml(str) {
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
+}
+
+function deserializeHtml(html) {
+    if (!html || typeof html !== "string") {
+        return [{
+            type: "paragraph",
+            children: [{ text: "" }],
+        }];
+    }
+
+    const temp = document.createElement("div");
+    temp.innerHTML = html;
+
+    function walk(node, marks = {}) {
+        if (node.nodeType === Node.TEXT_NODE) {
+            return [{ text: node.textContent || "", ...marks }];
+        }
+
+        if (node.nodeType !== Node.ELEMENT_NODE) {
+            return [];
+        }
+
+        let newMarks = { ...marks };
+
+        if (node.tagName === "B") newMarks.bold = true;
+        if (node.tagName === "I") newMarks.italic = true;
+        if (node.tagName === "U") newMarks.underline = true;
+
+        return Array.from(node.childNodes).flatMap(child =>
+            walk(child, newMarks)
+        );
+    }
+
+    const paragraphs = [];
+
+    temp.childNodes.forEach(node => {
+        if (node.nodeName === "P") {
+            const children = walk(node);
+            paragraphs.push({
+                type: "paragraph",
+                children: children.length ? children : [{ text: "" }],
+            });
+        }
+    });
+
+    return paragraphs.length
+        ? paragraphs
+        : [{
+            type: "paragraph",
+            children: [{ text: "" }],
+        }];
 }

@@ -1,65 +1,59 @@
 // src/pages/BlueprintPage.jsx
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import BlueprintCanvas from "../components/blueprint/BlueprintCanvas";
 import BlueprintToolbar from "../components/toolbar/BlueprintToolbar";
 import { getFiles, updateFilePosition } from "../api/files";
 import { GRID_STEP } from "../constants/grid";
+import CreateFileModal from "../components/file/CreateFileModal";
+import EditFileModal from "../components/file/EditFileModal";
+
 
 export default function BlueprintPage() {
-
-    // Liste des nodes affichés dans l'éditeur Blueprint
     const [nodes, setNodes] = useState([]);
-
-    // Liste des liens (sera utilisé plus tard)
     const [links, setLinks] = useState([]);
-
-    // Caméra : position (x,y) + zoom (scale)
-    // Cette caméra représente la position du Stage Konva dans l'espace
     const [camera, setCamera] = useState({
         x: 0,
         y: 0,
         scale: 1
     });
-
-    // Mode d'interaction de l'utilisateur : select ou pan
     const [mode, setMode] = useState("pan");
-
-    // Activation ou non de la grille d'arrière-plan
     const [gridEnabled, setGridEnabled] = useState(true);
+    const [createOpen, setCreateOpen] = useState(false);
+    const [editNode, setEditNode] = useState(null);
+    const stageRef = useRef(null);
+
 
     // Charger les nodes depuis ton backend
-    useEffect(() => {
-        async function load() {
-            try {
-                const data = await getFiles();
-                if (!data) return;
-                console.log("data : ", data);
+    const loadNodes = useCallback(async () => {
+        try {
+            const data = await getFiles();
+            if (!data) return;
 
-                // On convertit les fichiers reçus en nodes affichables
-                const loadedNodes = data.map(file => ({
-                    id: file.id,
-                    title: file.title,
-                    type: "file",
-                    headerColor: "#347bed",
-                    content: file.content,
+            const loadedNodes = data.map(file => ({
+                id: file.id,
+                title: file.title,
+                type: "file",
+                headerColor: "#347bed",
+                content: file.content,
 
-                    // conversion CASE → PIXEL
-                    x: (file.pos_x ?? 0) * GRID_STEP,
-                    y: (file.pos_y ?? 0) * GRID_STEP,
+                x: (file.pos_x ?? 0) * GRID_STEP,
+                y: (file.pos_y ?? 0) * GRID_STEP,
 
-                    inputs: [],
-                    outputs: []
-                }));
+                inputs: [],
+                outputs: []
+            }));
 
-                console.log("loadedNodes : ", loadedNodes);
-                setNodes(loadedNodes);
-            } catch (e) {
-                console.error("Erreur lors du chargement des nodes :", e);
-            }
+            setNodes(loadedNodes);
+        } catch (e) {
+            console.error("Erreur lors du chargement des nodes :", e);
         }
-
-        load();
     }, []);
+
+    useEffect(() => {
+        loadNodes();
+    }, [loadNodes]);
+
+
 
     // Lorsque l'utilisateur déplace un node, cette fonction est appelée
     const updateNodePosition = useCallback((id, x, y) => {
@@ -116,12 +110,13 @@ export default function BlueprintPage() {
                 onZoomOut={handleZoomOut}
                 onResetView={handleResetView}
                 onToggleGrid={handleToggleGrid}
-                onCreateFile={() => {}}
+                onCreateFile={() => setCreateOpen(true)}
                 onOpenApiTokenModal={() => {}}
             />
 
             {/* Canvas Blueprint (Konva) */}
             <BlueprintCanvas
+                stageRef={stageRef}
                 nodes={nodes}
                 links={links}
                 camera={camera}
@@ -130,6 +125,26 @@ export default function BlueprintPage() {
                 updateNodePosition={updateNodePosition}
                 commitNodePosition={commitNodePosition}
                 updateCamera={updateCamera}
+                onEditNode={(node) => setEditNode(node)}
+            />
+
+            <CreateFileModal
+                open={createOpen}
+                onClose={() => setCreateOpen(false)}
+                onFinished={() => {
+                    setCreateOpen(false);
+                    loadNodes();
+                }}
+                stageRef={stageRef}
+            />
+
+            <EditFileModal
+                node={editNode}
+                onClose={() => setEditNode(null)}
+                onSaved={() => {
+                    setEditNode(null);
+                    loadNodes();
+                }}
             />
         </div>
     );

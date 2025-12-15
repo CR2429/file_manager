@@ -40,9 +40,9 @@ export async function getFiles() {
 export async function createFile(content) {
     const res = await api.post("/draft/files/create", {
         title: content.title,
-        x: content.x,
-        y: content.y,
-        z: 0,
+        pos_x: content.x,
+        pos_y: content.y,
+        pos_z: 0,
         content: content.content
     });
 
@@ -64,8 +64,9 @@ export async function updateFilePosition(id, pos_x, pos_y) {
 // -------------------------------
 //  PATCH — Mettre à jour le contenu du fichier
 // -------------------------------
-export async function updateFileContent(id, content) {
+export async function updateFileContent(id, { title, content }) {
     const res = await api.patch(`/draft/files/${id}/content`, {
+        title,
         content
     });
 

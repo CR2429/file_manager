@@ -1,31 +1,48 @@
-// frontend/src/components/file/CreateFileModal.jsx
-import { useState } from "react";
+import { useState, useEffect} from "react";
 import { createFile } from "../../api/files";
 import RichTextEditor from "../richtext/RichTextEditor";
+import { GRID_STEP } from "../../constants/grid";
 import "./CreateFileModal.css";
 
-export default function CreateFileModal({ open, onClose, onFinished, camera }) {
+export default function CreateFileModal({ open, onClose, onFinished, stageRef }) {
     const [title, setTitle] = useState("");
     const [contentHtml, setContentHtml] = useState("");
 
-    if (!open) return null; // ce pattern est OK, il ne fait PAS crasher React
-
+    // Clear title
+    useEffect(() => {
+        if (open) {
+            setTitle("");
+            setContentHtml("");
+        }
+    }, [open]);
+    
+    if (!open) return null;
+    
     function handleCreate() {
         if (!title.trim()) return;
+        const stage = stageRef.current;
+        if (!stage) return;
 
-        const worldX = (2500 - camera.offset.x) / camera.zoom - 2500;
-        const worldY = (2500 - camera.offset.y) / camera.zoom - 2500;
+        // Centre écran
+        const screenCenter = {
+            x: window.innerWidth / 2,
+            y: window.innerHeight / 2,
+        };
 
-        const storedTitle = `${title}.txt`;
+        // Conversion écran → monde via Konva
+        const transform = stage.getAbsoluteTransform().copy().invert();
+        const worldPos = transform.point(screenCenter);
+
+        // Monde → grille
+        const gridX = Math.round(worldPos.x / GRID_STEP);
+        const gridY = Math.round(worldPos.y / GRID_STEP);
 
         createFile({
-            title: storedTitle,
+            title: `${title}.txt`,
             content: contentHtml,
-            x: worldX,
-            y: worldY,
-        }).then((file) => {
-            onFinished(file);
-        });
+            x: gridX,
+            y: gridY,
+        }).then(onFinished);
     }
 
     return (
@@ -35,18 +52,15 @@ export default function CreateFileModal({ open, onClose, onFinished, camera }) {
 
                 <label className="modal-label">Titre</label>
                 <input
-                    type="text"
                     className="modal-input"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Titre du fichier (sans extension)"
+                    placeholder="Titre du fichier"
                 />
 
-                <label className="modal-label">Contenu initial</label>
-
+                <label className="modal-label">Contenu</label>
                 <RichTextEditor
                     initialText=""
-                    placeholder="Contenu du fichier…"
                     onChangeHtml={setContentHtml}
                 />
 

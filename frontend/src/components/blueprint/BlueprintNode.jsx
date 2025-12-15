@@ -2,7 +2,7 @@
 import { Group, Rect, Text, Circle } from "react-konva";
 import { GRID_STEP } from "../../constants/grid";
 
-export default function BlueprintNode({ node, onPositionChange, onPositionCommit }) {
+export default function BlueprintNode({ node, onPositionChange, onPositionCommit, onEditNode }) {
     // Dimensions visuelles du node
     const width = 260;
     const headerHeight = 32;
@@ -44,6 +44,15 @@ export default function BlueprintNode({ node, onPositionChange, onPositionCommit
     const inputPinY = headerHeight + 24;
     const outputPinY = headerHeight + 24;
 
+    // Creer un preview du text
+    const previewText = node.content
+        ? node.content
+            .replace(/<p>/g, "")
+            .replace(/<\/p>/g, "\n")
+            .replace(/<[^>]+>/g, "")
+        : "No content";
+
+
     return (
         <Group
             x={node.x}
@@ -51,6 +60,7 @@ export default function BlueprintNode({ node, onPositionChange, onPositionCommit
             draggable={true}
             onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
+            onDblClick={() => onEditNode?.(node)}
         >
             {/* Header du node */}
             <Rect
@@ -90,13 +100,15 @@ export default function BlueprintNode({ node, onPositionChange, onPositionCommit
 
             {/* Texte descriptif */}
             <Text
-                text={node.content || "No content"}
+                text={previewText || "No content"}
                 x={12}
                 y={headerHeight + 10}
                 width={width - 24}
                 fill="#c5d1e5"
                 fontSize={13}
                 lineHeight={1.3}
+                ellipsis
+                height={bodyHeight - 20}
             />
 
             {/* Pin d'entrée (gauche) */}

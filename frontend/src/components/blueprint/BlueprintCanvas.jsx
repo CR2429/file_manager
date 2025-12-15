@@ -1,12 +1,12 @@
 // src/components/blueprint/BlueprintCanvas.jsx
-
 import { useState, useEffect, useRef } from "react";
 import { Stage, Layer, Group, Line } from "react-konva";
 import BlueprintNode from "./BlueprintNode";
 import BlueprintOrigin from "./BlueprintOrigin";
+import { GRID_STEP } from "../../constants/grid";
 
 // Grille d'arrière-plan
-function BlueprintGrid({ screenWidth, screenHeight }) {
+function BlueprintGrid({ screenWidth, screenHeight, onEditNode }) {
 
     const GRID_SIZE = 5;
 
@@ -84,15 +84,15 @@ function BlueprintGrid({ screenWidth, screenHeight }) {
 
 export default function BlueprintCanvas({
     nodes,
-    links,
     camera,
     updateNodePosition,
     updateCamera,
     mode,
     gridEnabled,
-    commitNodePosition
+    commitNodePosition,
+    stageRef,
+    onEditNode
 }) {
-    const stageRef = useRef(null);
 
     // Mesure la taille de l'écran pour adapter le Stage
     const [size, setSize] = useState({
@@ -168,7 +168,32 @@ export default function BlueprintCanvas({
             y: stage.y(),
             scale: stage.scaleX()
         });
+
+        //logCameraCenter(stage);
     };
+
+    function logCameraCenter(stage) {
+        const screenCenter = {
+            x: window.innerWidth / 2,
+            y: window.innerHeight / 2,
+        };
+
+        // Conversion écran → monde (Konva)
+        const transform = stage.getAbsoluteTransform().copy().invert();
+        const world = transform.point(screenCenter);
+
+        // Conversion monde → grille
+        const gridX = Math.round(world.x / GRID_STEP);
+        const gridY = Math.round(world.y / GRID_STEP);
+
+        console.log("[CAMERA CENTER]");
+        console.log(" screen :", screenCenter);
+        console.log(" world  :", {
+            x: world.x.toFixed(2),
+            y: world.y.toFixed(2),
+        });
+        console.log(" grid   :", { x: gridX, y: gridY });
+    }
 
     return (
         <Stage
@@ -203,6 +228,7 @@ export default function BlueprintCanvas({
                         node={node}
                         onPositionChange={updateNodePosition}
                         onPositionCommit={commitNodePosition}
+                        onEditNode={onEditNode}
                     />
                 ))}
             </Layer>
