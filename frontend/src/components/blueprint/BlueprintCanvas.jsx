@@ -91,7 +91,8 @@ export default function BlueprintCanvas({
     gridEnabled,
     commitNodePosition,
     stageRef,
-    onEditNode
+    onEditNode,
+    keywords
 }) {
 
     // Mesure la taille de l'écran pour adapter le Stage
@@ -122,6 +123,10 @@ export default function BlueprintCanvas({
         stage.scale({ x: camera.scale, y: camera.scale });
         stage.batchDraw();
     }, [camera]);
+
+    useEffect(() => {
+        console.log("[CANVAS RECEIVED KEYWORDS]", keywords);
+    }, [keywords]);
 
     // Gestion du zoom Konva (centré sur la souris)
     const handleWheel = (e) => {

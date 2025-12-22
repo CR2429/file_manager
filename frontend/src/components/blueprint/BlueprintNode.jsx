@@ -52,6 +52,58 @@ export default function BlueprintNode({ node, onPositionChange, onPositionCommit
             .replace(/<[^>]+>/g, "")
         : "No content";
 
+    if (node.type === "keyword") {
+        const paddingX = 14;
+        const height = 28;
+        const minWidth = 60;
+
+        return (
+            <Group
+                x={node.x}
+                y={node.y}
+                draggable
+                onDragMove={handleDragMove}
+                onDragEnd={handleDragEnd}
+            >
+                {/* Fond */}
+                <Rect
+                    width={Math.max(minWidth, node.label.length * 8 + paddingX * 2)}
+                    height={height}
+                    cornerRadius={14}
+                    fill="#24192f"
+                    stroke="#9b59b6"
+                    strokeWidth={1.5}
+                />
+
+                {/* Label */}
+                <Text
+                    text={node.label}
+                    fontSize={13}
+                    fill="#e8d9ff"
+                    x={paddingX}
+                    y={6}
+                    fontStyle="bold"
+                />
+
+                {/* Pin gauche */}
+                <Circle
+                    x={-8}
+                    y={height / 2}
+                    radius={4}
+                    fill="#9b59b6"
+                />
+
+                {/* Pin droite */}
+                <Circle
+                    x={Math.max(minWidth, node.label.length * 8 + paddingX * 2) + 8}
+                    y={height / 2}
+                    radius={4}
+                    fill="#9b59b6"
+                />
+            </Group>
+        );
+    }
+
 
     return (
         <Group

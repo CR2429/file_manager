@@ -3,9 +3,11 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import BlueprintCanvas from "../components/blueprint/BlueprintCanvas";
 import BlueprintToolbar from "../components/toolbar/BlueprintToolbar";
 import { getFiles, updateFilePosition } from "../api/files";
+import { getDraftKeywords } from "../api/keywords";
 import { GRID_STEP } from "../constants/grid";
 import CreateFileModal from "../components/file/CreateFileModal";
 import EditFileModal from "../components/file/EditFileModal";
+import { updateDraftKeyword } from "../api/keywords";
 
 
 export default function BlueprintPage() {
@@ -21,6 +23,7 @@ export default function BlueprintPage() {
     const [createOpen, setCreateOpen] = useState(false);
     const [editNode, setEditNode] = useState(null);
     const stageRef = useRef(null);
+    const [keywords, setKeywords] = useState([]);
 
 
     // Charger les nodes depuis ton backend
@@ -49,7 +52,34 @@ export default function BlueprintPage() {
         }
     }, []);
 
+    async function loadKeywords() {
+        try {
+            const data = await getDraftKeywords();
+
+            const keywordNodes = data.map(kw => ({
+                id: kw.id,
+                type: "keyword",
+                label: kw.label,
+                fileId: kw.file_id,
+
+                x: (kw.pos_x ?? 0) * GRID_STEP,
+                y: (kw.pos_y ?? 0) * GRID_STEP,
+
+                headerColor: "#9b59b6",
+                inputs: [],
+                outputs: []
+            }));
+
+            setKeywords(keywordNodes);
+        } catch (err) {
+            console.error("Erreur chargement keywords :", err);
+        }
+    }
+
+
+
     useEffect(() => {
+        loadKeywords();
         loadNodes();
     }, [loadNodes]);
 
@@ -69,6 +99,17 @@ export default function BlueprintPage() {
             console.error("Erreur sauvegarde position :", e);
         }
     }, []);
+
+    const commitKeywordPosition = useCallback(async (id, gridX, gridY) => {
+    try {
+        await updateDraftKeyword(id, {
+            pos_x: gridX,
+            pos_y: gridY
+        });
+    } catch (e) {
+        console.error("Erreur sauvegarde position keyword :", e);
+    }
+}, []);
 
     // Mettre à jour la caméra et sauvegarder sa position dans localStorage
     const updateCamera = useCallback((patch) => {
@@ -117,7 +158,7 @@ export default function BlueprintPage() {
             {/* Canvas Blueprint (Konva) */}
             <BlueprintCanvas
                 stageRef={stageRef}
-                nodes={nodes}
+                nodes={[...nodes, ...keywords]}
                 links={links}
                 camera={camera}
                 mode={mode}
@@ -126,6 +167,7 @@ export default function BlueprintPage() {
                 commitNodePosition={commitNodePosition}
                 updateCamera={updateCamera}
                 onEditNode={(node) => setEditNode(node)}
+                keywords={keywords}
             />
 
             <CreateFileModal
