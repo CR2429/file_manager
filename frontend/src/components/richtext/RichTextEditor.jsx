@@ -22,11 +22,7 @@ export default function RichTextEditor({
     placeholder = "Contenu…",
 }) {
     // Instance unique de l'editor
-    const editor = useMemo(
-        () => withHistory(withReact(createEditor())),
-        [initialText]
-    );
-
+    const editor = useMemo(() => withHistory(withReact(createEditor())), []);
 
     // Valeur de départ  → uniquement utilisée à la MONTÉE du composant
     const initialValue = useMemo(() => {

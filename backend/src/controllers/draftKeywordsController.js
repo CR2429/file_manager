@@ -96,6 +96,38 @@ exports.updateDraftKeyword = async (req, res) => {
     }
 };
 
+// UPDATE POSITION
+exports.updateDraftKeywordPosition = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { pos_x, pos_y, pos_z } = req.body;
+
+        // Validation stricte : positions = CASES
+        if (!Number.isInteger(pos_x) || !Number.isInteger(pos_y)) {
+            return res.status(400).json({
+                error: "pos_x and pos_y must be integers (grid cases)"
+            });
+        }
+
+        await pool.query(
+            `
+            UPDATE draft_keywords
+            SET
+                pos_x = ?,
+                pos_y = ?,
+                pos_z = IFNULL(?, pos_z)
+            WHERE id = ?
+            `,
+            [pos_x, pos_y, pos_z ?? null, id]
+        );
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Error updating draft file position:", err);
+        res.status(500).json({ error: "Database error" });
+    }
+};
+
 // DELETE
 // On ne supprime le keyword que s'il n'a aucun lien dans draft_links
 exports.deleteDraftKeyword = async (req, res) => {

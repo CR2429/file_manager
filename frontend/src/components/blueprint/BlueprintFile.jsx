@@ -1,8 +1,8 @@
-// src/components/blueprint/BlueprintNode.jsx
+// src/components/blueprint/BlueprintFile.jsx
 import { Group, Rect, Text, Circle } from "react-konva";
 import { GRID_STEP } from "../../constants/grid";
-
-export default function BlueprintNode({ node, onPositionChange, onPositionCommit, onEditNode }) {
+import { updateFilePosition } from "../../api/files";
+export default function BlueprintFile({ node, onEditNode, onMoveNode }) {
     // Dimensions visuelles du node
     const width = 260;
     const headerHeight = 32;
@@ -12,23 +12,6 @@ export default function BlueprintNode({ node, onPositionChange, onPositionCommit
     const headerColor = node.headerColor || "#347bed";
 
     // Met à jour la position du node dans React lorsque l'utilisateur le déplace
-    const handleDragMove = (e) => {
-        // Position en pixels
-        const xPx = e.target.x();
-        const yPx = e.target.y();
-
-        // Conversion pixels → cases (snap)
-        const gridX = Math.round(xPx / GRID_STEP);
-        const gridY = Math.round(yPx / GRID_STEP);
-
-        // Mise à jour visuelle immédiate (snap)
-        onPositionChange(
-            node.id,
-            gridX * GRID_STEP,
-            gridY * GRID_STEP
-        );
-    };
-
     const handleDragEnd = (e) => {
         const xPx = e.target.x();
         const yPx = e.target.y();
@@ -37,7 +20,7 @@ export default function BlueprintNode({ node, onPositionChange, onPositionCommit
         const gridY = Math.round(yPx / GRID_STEP);
 
         // Commit final → sauvegarde DB
-        onPositionCommit(node.id, gridX, gridY);
+        updateFilePosition(node.id, gridX, gridY);
     };
 
     // Position des "pins" (points de connexion)
@@ -52,67 +35,21 @@ export default function BlueprintNode({ node, onPositionChange, onPositionCommit
             .replace(/<[^>]+>/g, "")
         : "No content";
 
-    if (node.type === "keyword") {
-        const paddingX = 14;
-        const height = 28;
-        const minWidth = 60;
-
-        return (
-            <Group
-                x={node.x}
-                y={node.y}
-                draggable
-                onDragMove={handleDragMove}
-                onDragEnd={handleDragEnd}
-            >
-                {/* Fond */}
-                <Rect
-                    width={Math.max(minWidth, node.label.length * 8 + paddingX * 2)}
-                    height={height}
-                    cornerRadius={14}
-                    fill="#24192f"
-                    stroke="#9b59b6"
-                    strokeWidth={1.5}
-                />
-
-                {/* Label */}
-                <Text
-                    text={node.label}
-                    fontSize={13}
-                    fill="#e8d9ff"
-                    x={paddingX}
-                    y={6}
-                    fontStyle="bold"
-                />
-
-                {/* Pin gauche */}
-                <Circle
-                    x={-8}
-                    y={height / 2}
-                    radius={4}
-                    fill="#9b59b6"
-                />
-
-                {/* Pin droite */}
-                <Circle
-                    x={Math.max(minWidth, node.label.length * 8 + paddingX * 2) + 8}
-                    y={height / 2}
-                    radius={4}
-                    fill="#9b59b6"
-                />
-            </Group>
-        );
-    }
-
-
     return (
         <Group
             x={node.x}
             y={node.y}
             draggable={true}
-            onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
             onDblClick={() => onEditNode?.(node)}
+            onDragMove={(e) => {
+                onMoveNode(
+                    node.id,
+                    e.target.x(),
+                    e.target.y(),
+                    "file"
+                );
+            }}
         >
             {/* Header du node */}
             <Rect

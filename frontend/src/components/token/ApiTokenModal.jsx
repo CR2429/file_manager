@@ -5,9 +5,10 @@ export default function ApiTokenModal({ isOpen, onClose }) {
 
     if (!isOpen) return null;
 
+    //sauvegarde le token et recharge la page
     function handleSave() {
         localStorage.setItem("apiToken", token);
-        window.location.reload(); // recharge axios + système → simple et propre
+        window.location.reload();
     }
 
     return (

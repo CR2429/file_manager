@@ -3,6 +3,7 @@ import { updateFileContent, deleteFile } from "../../api/files";
 import { getDraftKeywords, createDraftKeyword, updateDraftKeyword, deleteDraftKeyword } from "../../api/keywords";
 import RichTextEditor from "../richtext/RichTextEditor";
 import "./EditFileModal.css";
+import { GRID_STEP } from "../../constants/grid";
 
 export default function EditFileModal({ node, onClose, onSaved }) {
     const [title, setTitle] = useState("");
@@ -73,13 +74,17 @@ export default function EditFileModal({ node, onClose, onSaved }) {
         }
 
         // ➕ CRÉATION : nouveaux keywords
+        let keywordOffsetY = 0;
+        const KEYWORD_SPACING = 80;
         for (const [key, kw] of incomingMap) {
             if (!existingMap.has(key)) {
                 await createDraftKeyword({
                     fileId,
                     label: kw.label,
                     start_index: kw.start_index,
-                    end_index: kw.end_index
+                    end_index: kw.end_index,
+                    pos_x: Math.round((node.x + 260) / GRID_STEP),
+                    pos_y: Math.round((node.y + keywordOffsetY + KEYWORD_SPACING) / GRID_STEP)
                 });
             }
         }

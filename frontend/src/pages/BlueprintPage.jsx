@@ -7,8 +7,8 @@ import { getDraftKeywords } from "../api/keywords";
 import { GRID_STEP } from "../constants/grid";
 import CreateFileModal from "../components/file/CreateFileModal";
 import EditFileModal from "../components/file/EditFileModal";
-import { updateDraftKeyword } from "../api/keywords";
-
+import ApiTokenModal from "../components/token/ApiTokenModal";
+ 
 
 export default function BlueprintPage() {
     const [nodes, setNodes] = useState([]);
@@ -24,6 +24,7 @@ export default function BlueprintPage() {
     const [editNode, setEditNode] = useState(null);
     const stageRef = useRef(null);
     const [keywords, setKeywords] = useState([]);
+    const [apiTokenModalOpen, setApiTokenModalOpen] = useState(false);
 
 
     // Charger les nodes depuis ton backend
@@ -43,7 +44,12 @@ export default function BlueprintPage() {
                 y: (file.pos_y ?? 0) * GRID_STEP,
 
                 inputs: [],
-                outputs: []
+                outputs: [
+                    {
+                        id: `out-keywords-${file.id}`,
+                        type: "keyword"
+                    }
+                ]
             }));
 
             setNodes(loadedNodes);
@@ -51,8 +57,8 @@ export default function BlueprintPage() {
             console.error("Erreur lors du chargement des nodes :", e);
         }
     }, []);
-
-    async function loadKeywords() {
+    
+    const loadKeywords = useCallback(async () => {
         try {
             const data = await getDraftKeywords();
 
@@ -61,12 +67,15 @@ export default function BlueprintPage() {
                 type: "keyword",
                 label: kw.label,
                 fileId: kw.file_id,
-
                 x: (kw.pos_x ?? 0) * GRID_STEP,
                 y: (kw.pos_y ?? 0) * GRID_STEP,
-
                 headerColor: "#9b59b6",
-                inputs: [],
+                inputs: [
+                    {
+                        id: `in-parent-${kw.id}`,
+                        from: kw.file_id
+                    }
+                ],
                 outputs: []
             }));
 
@@ -74,42 +83,13 @@ export default function BlueprintPage() {
         } catch (err) {
             console.error("Erreur chargement keywords :", err);
         }
-    }
-
-
+    }, []);
 
     useEffect(() => {
-        loadKeywords();
         loadNodes();
-    }, [loadNodes]);
+        loadKeywords();
+    }, [loadNodes, loadKeywords]);
 
-
-
-    // Lorsque l'utilisateur déplace un node, cette fonction est appelée
-    const updateNodePosition = useCallback((id, x, y) => {
-        setNodes(prev =>
-            prev.map(n => n.id === id ? { ...n, x, y } : n)
-        );
-    }, []);
-
-    const commitNodePosition = useCallback(async (id, gridX, gridY) => {
-        try {
-            await updateFilePosition(id, gridX, gridY);
-        } catch (e) {
-            console.error("Erreur sauvegarde position :", e);
-        }
-    }, []);
-
-    const commitKeywordPosition = useCallback(async (id, gridX, gridY) => {
-    try {
-        await updateDraftKeyword(id, {
-            pos_x: gridX,
-            pos_y: gridY
-        });
-    } catch (e) {
-        console.error("Erreur sauvegarde position keyword :", e);
-    }
-}, []);
 
     // Mettre à jour la caméra et sauvegarder sa position dans localStorage
     const updateCamera = useCallback((patch) => {
@@ -136,7 +116,53 @@ export default function BlueprintPage() {
     const handleResetView = () => updateCamera({ x: 0, y: 0, scale: 1 });
     const handleToggleGrid = () => setGridEnabled(g => !g);
 
-    
+    // Construire les liens entre fichiers et keywords
+    function buildKeywordLinks(files, keywords) {
+        return keywords.flatMap(keyword =>
+            keyword.inputs
+                .filter(input =>
+                    files.some(file => file.id === input.from)
+                )
+                .map(input => ({
+                    id: `${input.from}->${keyword.id}`,
+                    from: input.from,
+                    to: keyword.id,
+                    fromPort: `out-keywords-${input.from}`,
+                    toPort: input.id,
+                    type: "keyword"
+                }))
+        );
+    }
+    useEffect(() => {
+        if (!nodes.length || !keywords.length) return;
+
+        const generatedLinks = buildKeywordLinks(nodes, keywords);
+        setLinks(generatedLinks);
+    }, [nodes, keywords]);
+    useEffect(() => {
+        console.log("FILES:", nodes);
+        console.log("KEYWORDS:", keywords);
+        console.log("LINKS:", links);
+    }, [links]);
+
+    // Gérer le déplacement d'un node (fichier ou keyword)
+    function handleMoveNode(id, x, y, type) {
+        if (type === "file") {
+            setNodes(prev =>
+                prev.map(n =>
+                    n.id === id ? { ...n, x, y } : n
+                )
+            );
+        }
+
+        if (type === "keyword") {
+            setKeywords(prev =>
+                prev.map(k =>
+                    k.id === id ? { ...k, x, y } : k
+                )
+            );
+        }
+    } 
 
     return (
         <div style={{ width: "100vw", height: "100vh", overflow: "hidden" }}>
@@ -152,22 +178,21 @@ export default function BlueprintPage() {
                 onResetView={handleResetView}
                 onToggleGrid={handleToggleGrid}
                 onCreateFile={() => setCreateOpen(true)}
-                onOpenApiTokenModal={() => {}}
+                onOpenApiTokenModal={() => setApiTokenModalOpen(true)}
             />
 
             {/* Canvas Blueprint (Konva) */}
             <BlueprintCanvas
                 stageRef={stageRef}
-                nodes={[...nodes, ...keywords]}
+                nodes={nodes}
                 links={links}
                 camera={camera}
                 mode={mode}
                 gridEnabled={gridEnabled}
-                updateNodePosition={updateNodePosition}
-                commitNodePosition={commitNodePosition}
                 updateCamera={updateCamera}
                 onEditNode={(node) => setEditNode(node)}
                 keywords={keywords}
+                onMoveNode={handleMoveNode}
             />
 
             <CreateFileModal
@@ -176,6 +201,7 @@ export default function BlueprintPage() {
                 onFinished={() => {
                     setCreateOpen(false);
                     loadNodes();
+                    loadKeywords();
                 }}
                 stageRef={stageRef}
             />
@@ -186,8 +212,15 @@ export default function BlueprintPage() {
                 onSaved={() => {
                     setEditNode(null);
                     loadNodes();
+                    loadKeywords();
                 }}
             />
+
+            <ApiTokenModal
+                isOpen={apiTokenModalOpen}
+                onClose={() => setApiTokenModalOpen(false)}
+            />
+
         </div>
     );
 }

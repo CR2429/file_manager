@@ -11,6 +11,9 @@ router.get("/", controller.getDraftKeywords);
 // Mettre à jour un keyword
 router.patch("/:id", controller.updateDraftKeyword);
 
+// UPDATE — position uniquement
+router.patch("/:id/position", controller.updateDraftKeywordPosition);
+
 // Supprimer un keyword (seulement si aucun lien)
 router.delete("/:id", controller.deleteDraftKeyword);
 

@@ -1,9 +1,10 @@
 // src/components/blueprint/BlueprintCanvas.jsx
 import { useState, useEffect, useRef } from "react";
 import { Stage, Layer, Group, Line } from "react-konva";
-import BlueprintNode from "./BlueprintNode";
+import BlueprintFile from "./BlueprintFile";
 import BlueprintOrigin from "./BlueprintOrigin";
 import { GRID_STEP } from "../../constants/grid";
+import BlueprintKeyword from "./BlueprintKeyword";
 
 // Grille d'arrière-plan
 function BlueprintGrid({ screenWidth, screenHeight, onEditNode }) {
@@ -84,15 +85,15 @@ function BlueprintGrid({ screenWidth, screenHeight, onEditNode }) {
 
 export default function BlueprintCanvas({
     nodes,
+    keywords,
+    links,
     camera,
-    updateNodePosition,
     updateCamera,
     mode,
     gridEnabled,
-    commitNodePosition,
     stageRef,
     onEditNode,
-    keywords
+    onMoveNode
 }) {
 
     // Mesure la taille de l'écran pour adapter le Stage
@@ -123,10 +124,6 @@ export default function BlueprintCanvas({
         stage.scale({ x: camera.scale, y: camera.scale });
         stage.batchDraw();
     }, [camera]);
-
-    useEffect(() => {
-        console.log("[CANVAS RECEIVED KEYWORDS]", keywords);
-    }, [keywords]);
 
     // Gestion du zoom Konva (centré sur la souris)
     const handleWheel = (e) => {
@@ -177,28 +174,32 @@ export default function BlueprintCanvas({
         //logCameraCenter(stage);
     };
 
-    function logCameraCenter(stage) {
-        const screenCenter = {
-            x: window.innerWidth / 2,
-            y: window.innerHeight / 2,
-        };
+    // Fusionner nodes et keywords pour un accès par ID
+    const allNodes = [...nodes, ...keywords];
+    const nodeById = Object.fromEntries(
+        allNodes.map(n => [n.id, n])
+    );
 
-        // Conversion écran → monde (Konva)
-        const transform = stage.getAbsoluteTransform().copy().invert();
-        const world = transform.point(screenCenter);
+    // Construire les liens entre fichiers et keywords
+    function getPortPosition(node, isOutput) {
+        if (node.type === "file") {
+            return {
+                x: node.x + 220, // largeur BlueprintFile
+                y: node.y + 40   // centre vertical du header
+            };
+        }
 
-        // Conversion monde → grille
-        const gridX = Math.round(world.x / GRID_STEP);
-        const gridY = Math.round(world.y / GRID_STEP);
+        if (node.type === "keyword") {
+            return {
+                x: node.x,       // entrée à gauche
+                y: node.y + 14
+            };
+        }
 
-        console.log("[CAMERA CENTER]");
-        console.log(" screen :", screenCenter);
-        console.log(" world  :", {
-            x: world.x.toFixed(2),
-            y: world.y.toFixed(2),
-        });
-        console.log(" grid   :", { x: gridX, y: gridY });
+        return null;
     }
+
+    
 
     return (
         <Stage
@@ -225,15 +226,49 @@ export default function BlueprintCanvas({
                 )}
             </Layer>
 
+            {/* Links */}
+            <Layer listening={false}>
+                {links.map(link => {
+                    const fromNode = nodeById[link.from];
+                    const toNode = nodeById[link.to];
+
+                    if (!fromNode || !toNode) return null;
+
+                    const from = getPortPosition(fromNode, true);
+                    const to = getPortPosition(toNode, false);
+
+                    if (!from || !to) return null;
+
+                    return (
+                        <Line
+                            key={link.id}
+                            points={[
+                                from.x, from.y,
+                                to.x, to.y
+                            ]}
+                            stroke="#ffffffff"
+                            strokeWidth={2}
+                        />
+                    );
+                })}
+            </Layer>
+
+            
             {/* Nodes */}
             <Layer>
                 {nodes.map((node) => (
-                    <BlueprintNode
+                    <BlueprintFile
                         key={node.id}
                         node={node}
-                        onPositionChange={updateNodePosition}
-                        onPositionCommit={commitNodePosition}
                         onEditNode={onEditNode}
+                        onMoveNode={onMoveNode}
+                    />
+                ))}
+                {keywords.map((keyword) => (
+                    <BlueprintKeyword 
+                        key={keyword.id}
+                        node={keyword}
+                        onMoveNode={onMoveNode}
                     />
                 ))}
             </Layer>

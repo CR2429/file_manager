@@ -47,6 +47,18 @@ export async function createDraftKeyword(payload) {
 }
 
 // -------------------------------
+//  PATCH — Mettre à jour la position d'un keyword
+// -------------------------------
+export async function updateDraftKeywordPosition(id, pos_x, pos_y) {
+    const res = await api.patch(`/draft/keywords/${id}/position`, {
+        pos_x,
+        pos_y
+    });
+
+    return safeExtract(res);
+}
+
+// -------------------------------
 //  PATCH — Mettre à jour un keyword
 // -------------------------------
 export async function updateDraftKeyword(id, payload) {
