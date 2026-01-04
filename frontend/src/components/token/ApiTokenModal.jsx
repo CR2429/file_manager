@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "./ApiTokenModal.css"
 
 export default function ApiTokenModal({ isOpen, onClose }) {
     const [token, setToken] = useState(localStorage.getItem("apiToken") || "");
@@ -17,7 +18,7 @@ export default function ApiTokenModal({ isOpen, onClose }) {
                 <h3 className="modal-title">Configurer la clé API</h3>
 
                 <input
-                    type="text"
+                    type="password"
                     value={token}
                     onChange={(e) => setToken(e.target.value)}
                     placeholder="Entrez votre clé"

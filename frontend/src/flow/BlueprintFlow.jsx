@@ -8,11 +8,14 @@ import { mapFilesToNodes, mapKeywordsToNodes, mapKeywordsToEdges, buildCoreEdges
 import { getFiles, updateFilePosition } from "../api/files";
 import { getDraftKeywords, updateDraftKeywordPosition } from "../api/keywords";
 import CoreNode from "./nodes/CoreNode";
+import BlueprintControls from "./BlueprintControls";
+import ApiTokenModal from "../components/token/ApiTokenModal";
 
 export default function BlueprintFlow() {
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
-
+  const [apiTokenModalOpen, setApiTokenModalOpen] = useState(false);
+  
   const nodeTypes = useMemo(() => ({
     file: FileNode,
     keyword: KeywordNode,
@@ -28,6 +31,7 @@ export default function BlueprintFlow() {
     const keywordNodes = mapKeywordsToNodes(keywords ?? []);
     const keywordEdges = mapKeywordsToEdges(keywords ?? []);
     const coreEdges = buildCoreEdges(files, keywords);
+    
     
     const CORE_NODE = {
       id: "core",
@@ -82,10 +86,6 @@ export default function BlueprintFlow() {
     }
   }, []);
 
-  
-
-
-
   return (
     <div style={{ width: "100%", height: "100vh", background: "#0b1220" }}>
       <ReactFlow
@@ -98,7 +98,14 @@ export default function BlueprintFlow() {
         fitView
       >
         <Background gap={24} size={1} />
-        <Controls />
+        <BlueprintControls
+          onOpenApiTokenModal={() => setApiTokenModalOpen(true)}
+        />
+
+        <ApiTokenModal
+                isOpen={apiTokenModalOpen}
+                onClose={() => setApiTokenModalOpen(false)}
+            />
       </ReactFlow>
     </div>
   );
