@@ -18,10 +18,10 @@ export default function KeywordNode({ data }) {
       {data.label ?? "keyword"}
 
       {/* output */}
-      <Handle type="target" position={Position.Right} style={{ width: 10, height: 10 }} isConnectable={true} />
+      <Handle type="source" position={Position.Right} style={{ width: 10, height: 10 }} isConnectable={true} />
 
       {/* input */}
-      <Handle type="source" position={Position.Left} style={{ width: 10, height: 10 }} isConnectable={false} />
+      <Handle type="target" position={Position.Left} style={{ width: 10, height: 10 }} isConnectable={false} />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 import { GRID_STEP } from "../../constants/grid";
 
 // Mappe les fichiers en nodes pour React Flow
-export function mapFilesToNodes(files) {
+export function mapFilesToNodes(files, onEditFile) {
   return files.map(f => ({
     id: String(f.id),
     type: "file",
@@ -11,9 +11,11 @@ export function mapFilesToNodes(files) {
       y: (f.pos_y ?? 0) * GRID_STEP
     },
     data: {
+      id: String(f.id),
       title: f.title,
       content: f.content,
-      headerColor: f.headerColor ?? "#347bed"
+      headerColor: f.headerColor ?? "#347bed",
+      onEdit: onEditFile
     }
   }));
 }
@@ -42,9 +44,8 @@ export function mapKeywordsToEdges(keywords) {
     .filter(k => k.file_id != null)
     .map(k => ({
       id: `e-kw-${k.id}-file-${k.file_id}`,
-      source: `kw-${k.id}`,
-      target: String(k.file_id),
-      type: "keyword",
+      target: `kw-${k.id}`,
+      source: String(k.file_id),
       animated: false
     }));
 }
@@ -53,8 +54,7 @@ export function mapKeywordsToEdges(keywords) {
 export function buildCoreEdges(files) {
   return files.map(f => ({
     id: `e-core-${f.id}`,
-    target: "core",
-    source: String(f.id),
-    type: "core"
+    source: "core",
+    target: String(f.id)
   }));
 }

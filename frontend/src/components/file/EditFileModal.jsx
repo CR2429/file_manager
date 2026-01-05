@@ -75,7 +75,6 @@ export default function EditFileModal({ node, onClose, onSaved }) {
 
         // ➕ CRÉATION : nouveaux keywords
         let keywordOffsetY = 0;
-        const KEYWORD_SPACING = 80;
         for (const [key, kw] of incomingMap) {
             if (!existingMap.has(key)) {
                 await createDraftKeyword({
@@ -83,9 +82,11 @@ export default function EditFileModal({ node, onClose, onSaved }) {
                     label: kw.label,
                     start_index: kw.start_index,
                     end_index: kw.end_index,
-                    pos_x: Math.round((node.x + 260) / GRID_STEP),
-                    pos_y: Math.round((node.y + keywordOffsetY + KEYWORD_SPACING) / GRID_STEP)
+                    pos_x: node.pos_x + 13,
+                    pos_y: node.pos_y + keywordOffsetY
                 });
+
+                keywordOffsetY += 2;
             }
         }
     }

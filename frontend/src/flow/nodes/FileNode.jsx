@@ -5,6 +5,12 @@ import "reactflow/dist/style.css";
 export default function FileNode({ data }) {
   const headerColor = data.headerColor ?? "#347bed";
 
+  // ouvre l'éditeur de fichier au clic
+  function handleOpenEditor(e) {
+    e.stopPropagation();
+    data.onEdit?.(data.id);
+  }
+
   return (
     <div style={{
       width: 260,
@@ -25,15 +31,20 @@ export default function FileNode({ data }) {
         {data.title ?? "Untitled"}
       </div>
 
-      <div style={{ padding: 12, fontSize: 12, lineHeight: 1.35, opacity: 0.9 }}>
-        {data.content ? String(data.content).slice(0, 180) : "No content"}
+      <div 
+        onClick={handleOpenEditor}
+        style={{ padding: 12, fontSize: 12, lineHeight: 1.35, opacity: 0.9, cursor: "pointer" }}
+        dangerouslySetInnerHTML={{
+          __html: data.content ?? "<em>No content</em>"
+        }}
+      >
       </div>
       
       {/* output */}
-      <Handle type="target" position={Position.Right} style={{ width: 10, height: 10 }} isConnectable={false} />
+      <Handle type="source" position={Position.Right} style={{ width: 10, height: 10 }} isConnectable={false} />
 
       {/* input */}
-      <Handle type="source" position={Position.Left} style={{ width: 10, height: 10 }} isConnectable={true} />
+      <Handle type="target" position={Position.Left} style={{ width: 10, height: 10 }} isConnectable={false} />
     </div>
   );
 }

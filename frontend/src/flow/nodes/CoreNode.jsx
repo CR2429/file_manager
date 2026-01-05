@@ -2,6 +2,7 @@
 import { Handle, Position } from "reactflow";
 
 export default function CoreNode() {
+
   return (
     <div style={{
       width: 180,
@@ -16,17 +17,25 @@ export default function CoreNode() {
       justifyContent: "center",
       letterSpacing: 1,
       boxShadow: "0 0 40px rgba(59,130,246,0.6)",
-      border: "1px solid rgba(255,255,255,0.15)"
+      border: "1px solid rgba(255,255,255,0.15)",
     }}>
       NOYAU
 
+
       {/* Output uniquement */}
       <Handle
-        type="target"
+        type="source"
         position={Position.Right}
-        style={{ width: 12, height: 12 }}
+        style={{
+          width: 14,
+          height: 14,
+          background: "#3b82f6",
+          borderRadius: "50%",
+          right: -7
+        }}
         isConnectable={true}
       />
+
     </div>
   );
 }

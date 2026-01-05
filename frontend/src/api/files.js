@@ -39,11 +39,11 @@ export async function getFiles() {
 // -------------------------------
 export async function createFile(content) {
     const res = await api.post("/draft/files/create", {
-        title: content.title,
-        pos_x: content.x,
-        pos_y: content.y,
+        title: "New File.txt",
+        pos_x: content.pos_x,
+        pos_y: content.pos_y,
         pos_z: 0,
-        content: content.content
+        content: ""
     });
 
     return safeExtract(res);
